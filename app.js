@@ -66,6 +66,157 @@ app.get('/maps_graded/:id', (req, res) => {
     });
 });
 
+
+
+///////////////////////// All USERS related Queries //////////////////////////////////
+// Get all users
+app.get('/users', (req, res) => {
+    const query = 'SELECT * FROM users';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else {
+            res.json(results);  // Ensure this returns an array of users
+        }
+    });
+});
+
+// Get total count of users
+app.get('/users/count', (req, res) => {
+    const query = 'SELECT COUNT(*) AS count FROM users';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching users count:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else {
+            res.json({ count: results[0].count });
+        }
+    });
+});
+
+// Add a new user
+app.post('/users', (req, res) => {
+    const { name, email, password } = req.body;
+
+    // Check if required fields are provided
+    if (!name || !email || !password) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Define the query for inserting a new user
+    const query = 'INSERT INTO users (name, email, password) VALUES (?, ?, ?)';
+
+    // Execute the query
+    db.query(query, [name, email, password], (err, results) => {
+        if (err) {
+            console.error('Error inserting user:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else {
+            console.log('User added:', results.insertId);
+            res.status(201).json({ id: results.insertId, email });
+        }
+    });
+});
+
+
+///////////////////////// Point of Interest Queries //////////////////////////////////
+
+app.get('/pois', (req, res) => {
+    const query = 'SELECT * FROM poi';
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('Error fetching POIs:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else {
+            res.json(results);  // Ensure this returns an array of POIs
+        }
+    });
+});
+
+app.get('/pois/:userid/:name', (req, res) => {
+    const { userid, name } = req.params;
+    const query = 'SELECT * FROM poi WHERE userid = ? AND name = ?';
+    db.query(query, [userid, name], (err, results) => {
+        if (err) {
+            console.error('Error fetching POI:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else if (results.length === 0) {
+            res.status(404).json({ error: 'POI not found' });
+        } else {
+            res.json(results[0]);  // Return the specific POI
+        }
+    });
+});
+
+app.post('/pois', (req, res) => {
+    const {
+        userid,
+        name,
+        address,
+        rating,
+        latitude,
+        longitude,
+        place_id,
+        category,
+        country,
+        description,
+        photo_url,
+        fact1,
+        fact2,
+        fact3
+    } = req.body;
+
+    // Check if required fields are provided
+    if (!userid || !name || !latitude || !longitude) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    // Define the query for inserting a new POI
+    const query = `
+        INSERT INTO poi (
+            userid, name, address, rating,
+            latitude, longitude, place_id,
+            category, country, description,
+            photo_url, fact1, fact2, fact3
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+    // Execute the query
+    db.query(query, [
+        userid, name, address, rating,
+        latitude, longitude, place_id,
+        category, country, description,
+        photo_url, fact1, fact2, fact3
+    ], (err, results) => {
+        if (err) {
+            console.error('Error inserting POI:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else {
+            console.log('POI added:', results.insertId);
+            res.status(201).json({ id: results.insertId });
+        }
+    });
+});
+app.delete('/pois/:id', (req, res) => {
+    const { id } = req.params; // Get id from URL parameters
+    const query = 'DELETE FROM poi WHERE id = ?'; // Query to delete based on id
+    
+    db.query(query, [id], (err, results) => {
+        if (err) {
+            console.error('Error deleting POI:', err);
+            res.status(500).json({ error: 'Database error' });
+        } else if (results.affectedRows === 0) {
+            res.status(404).json({ error: 'POI not found' });
+        } else {
+            res.status(200).json({ message: 'POI deleted successfully' });
+        }
+    });
+});
+
+
+
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
